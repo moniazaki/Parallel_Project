@@ -1,15 +1,31 @@
 import os
-from tkinter import Tk, filedialog, Button, Label, Text, ttk, Frame, PhotoImage,Canvas, Scrollbar
+from tkinter import Tk, filedialog, Button, Label, Text, ttk, Frame, Canvas, Scrollbar
 import threading
-from downloader import FileDownloader
+from downloader import FileDownloader  # Ensure you have this custom module
 
+# Define constants for repeated values
+BG_COLOR = "#14262E"
+BUTTON_COLOR = "#19323C"
+BUTTON_ACTIVE_COLOR = "#14262E"
+ERROR_COLOR = "#F2545B"
+SUCCESS_COLOR = "#19323C"
+LIGHT_BG = "#F3F7F0"
+TEXT_BOX_BG = "#FDF6E3"
+TEXT_BOX_FG = "#333333"
+TEXT_BOX_CURSOR_COLOR = "#19323C"
+FONT_REGULAR = ("Arial", 12)
+FONT_BOLD = ("Helvetica", 24, "bold")
+FONT_LABEL = ("Arial", 14)
+FONT_STATUS = ("Arial", 12)
 
 class DownloaderGUI:
     def __init__(self):
         self.root = Tk()
-        self.root.title("File Downloader")
+        self.root.title("Multiple Files Downloader")
         self.root.geometry("750x750")
-        self.root.configure(bg="#f0f4f7")  # Light blue-gray background
+        self.root.resizable(False, False)
+
+        self.root.configure(bg=BG_COLOR)  # Background: Mint Cream
 
         self.urls = []
         self.dest_folder = ""
@@ -21,8 +37,8 @@ class DownloaderGUI:
 
     def setup_ui(self):
         # Create a canvas and a scrollable frame
-        self.canvas = Canvas(self.root, bg="#f0f4f7")
-        self.scrollable_frame = Frame(self.canvas, bg="#f0f4f7")
+        self.canvas = Canvas(self.root, bg=LIGHT_BG)
+        self.scrollable_frame = Frame(self.canvas, bg=LIGHT_BG)
         self.scrollbar = Scrollbar(self.root, orient="vertical", command=self.canvas.yview)
         self.canvas.configure(yscrollcommand=self.scrollbar.set)
 
@@ -41,68 +57,72 @@ class DownloaderGUI:
 
     def create_content(self):
         # Title Section
-        title_frame = Frame(self.scrollable_frame, bg="#4a90e2")
+        title_frame = self.create_frame(self.scrollable_frame, BG_COLOR)
         title_frame.pack(fill="x")
         Label(
-            title_frame, text="File Downloader", font=("Helvetica", 24, "bold"),
-            bg="#4a90e2", fg="white", pady=10
+            title_frame, text="Multiple Files Downloader", font=FONT_BOLD,
+            bg=BG_COLOR, fg="white", pady=10
         ).pack()
 
         # URLs Input Section
-        input_frame = Frame(self.scrollable_frame, bg="#f0f4f7", pady=10)
+        input_frame = self.create_frame(self.scrollable_frame, LIGHT_BG, pady=10)
         input_frame.pack(fill="x")
-        Label(input_frame, text="Enter URLs (one per line):", font=("Arial", 14), bg="#f0f4f7").pack(anchor="w", padx=20)
-        self.text_box = Text(input_frame, height=10, width=80, font=("Arial", 12))
+        Label(input_frame, text="Enter URLs (one per line):", font=FONT_LABEL, bg=LIGHT_BG).pack(anchor="w", padx=20)
+        self.text_box = self.create_text_box(input_frame)
         self.text_box.pack(pady=10, padx=20)
 
         # Destination Folder Section
-        folder_frame = Frame(self.scrollable_frame, bg="#f0f4f7", pady=10)
+        folder_frame = self.create_frame(self.scrollable_frame, LIGHT_BG, pady=10)
         folder_frame.pack(fill="x")
-        Label(folder_frame, text="Destination Folder:", font=("Arial", 14), bg="#f0f4f7").pack(anchor="w", padx=20)
-        self.folder_label = Label(folder_frame, text="Not Selected", font=("Arial", 12), bg="#e6e9ed", anchor="w", width=60)
+        Label(folder_frame, text="Destination Folder:", font=FONT_LABEL, bg=LIGHT_BG).pack(anchor="w", padx=20)
+        self.folder_label = Label(folder_frame, text="Not Selected", font=FONT_REGULAR, bg=TEXT_BOX_BG, fg=TEXT_BOX_FG, anchor="w", width=70)
         self.folder_label.pack(pady=5, padx=20)
         Button(
-            folder_frame, text="Browse", command=self.browse_folder, font=("Arial", 12),
-            bg="#4a90e2", fg="white", activebackground="#3a78c2", activeforeground="white"
+            folder_frame, text="Browse", command=self.browse_folder, font=FONT_REGULAR,
+            bg=BUTTON_COLOR, fg="white", activebackground=BUTTON_ACTIVE_COLOR, activeforeground="white"
         ).pack(pady=5)
 
         # Status Label
-        self.status_label = Label(self.scrollable_frame, text="", font=("Arial", 12), bg="#f0f4f7", fg="#333333")
+        self.status_label = Label(self.scrollable_frame, text="", font=FONT_STATUS, bg=LIGHT_BG, fg=TEXT_BOX_FG)
         self.status_label.pack(pady=5)
 
         # Control Buttons
-        control_frame = Frame(self.scrollable_frame, bg="#f0f4f7", pady=10)
+        control_frame = self.create_frame(self.scrollable_frame, LIGHT_BG, pady=10)
         control_frame.pack()
-        Button(
-            control_frame, text="Start Download", command=self.start_download_thread, font=("Arial", 12),
-            bg="#4a90e2", fg="white", activebackground="#3a78c2", activeforeground="white", width=15
-        ).pack(side="left", padx=10)
-        Button(
-            control_frame, text="Pause", command=self.pause_download, font=("Arial", 12),
-            bg="#ffcc00", fg="black", activebackground="#e6b800", activeforeground="black", width=15
-        ).pack(side="left", padx=10)
-        Button(
-            control_frame, text="Resume", command=self.resume_download, font=("Arial", 12),
-            bg="#4caf50", fg="white", activebackground="#3e8e41", activeforeground="white", width=15
-        ).pack(side="left", padx=10)
-        Button(
-            control_frame, text="Cancel", command=self.cancel_download, font=("Arial", 12),
-            bg="#f44336", fg="white", activebackground="#d32f2f", activeforeground="white", width=15
-        ).pack(side="left", padx=10)
+        self.create_button(control_frame, "Start Download", self.start_download_thread, BUTTON_COLOR, BUTTON_ACTIVE_COLOR, 15)
+        self.create_button(control_frame, "Pause", self.pause_download, ERROR_COLOR, "#C2434A", 15)
+        self.create_button(control_frame, "Resume", self.resume_download, BUTTON_COLOR, BUTTON_ACTIVE_COLOR, 15)
+        self.create_button(control_frame, "Cancel", self.cancel_download, ERROR_COLOR, "#C2434A", 15)
 
         # Progress Section
-        progress_frame = Frame(self.scrollable_frame, bg="#f0f4f7", pady=10)
+        progress_frame = self.create_frame(self.scrollable_frame, LIGHT_BG, pady=10)
         progress_frame.pack(fill="both", expand=True)
-        Label(progress_frame, text="Progress:", font=("Arial", 14), bg="#f0f4f7").pack(anchor="w", padx=20)
-        self.progress_frame = Frame(progress_frame, bg="#f0f4f7")
+        Label(progress_frame, text="Progress:", font=FONT_LABEL, bg=LIGHT_BG).pack(anchor="w", padx=20)
+        self.progress_frame = Frame(progress_frame, bg=LIGHT_BG)
         self.progress_frame.pack(fill="x", padx=20, pady=5)
 
         # Log Section
-        log_frame = Frame(self.scrollable_frame, bg="#f0f4f7", pady=10)
+        log_frame = self.create_frame(self.scrollable_frame, LIGHT_BG, pady=10)
         log_frame.pack(fill="both", expand=True)
-        Label(log_frame, text="Logs:", font=("Arial", 14), bg="#f0f4f7").pack(anchor="w", padx=20)
-        self.log_box = Text(log_frame, height=10, width=80, font=("Arial", 12), bg="#e6e9ed", state="disabled")
+        Label(log_frame, text="Logs:", font=FONT_LABEL, bg=LIGHT_BG).pack(anchor="w", padx=20)
+        self.log_box = self.create_text_box(log_frame, state="disabled")  # Read-only log box
         self.log_box.pack(pady=10, padx=20)
+
+    def create_frame(self, parent, bg_color, pady=0):
+        frame = Frame(parent, bg=bg_color, pady=pady)
+        return frame
+
+    def create_text_box(self, parent, state="normal"):
+        return Text(
+            parent, height=10, width=80, font=FONT_REGULAR,
+            bg=TEXT_BOX_BG, fg=TEXT_BOX_FG, insertbackground=TEXT_BOX_CURSOR_COLOR, state=state
+        )
+
+    def create_button(self, parent, text, command, bg_color, active_bg_color, width):
+        Button(
+            parent, text=text, command=command, font=FONT_REGULAR,
+            bg=bg_color, fg="white", activebackground=active_bg_color, activeforeground="white", width=width
+        ).pack(side="left", padx=10)
 
     def browse_folder(self):
         folder = filedialog.askdirectory()
@@ -124,7 +144,7 @@ class DownloaderGUI:
             self.update_status("Select a destination folder.", "red")
             return
 
-        self.update_status("Downloading...", "#4a90e2")
+        self.update_status("Downloading...", BUTTON_COLOR)
         self.clear_progress_bars()
 
         self.progress_bars = []
@@ -135,7 +155,7 @@ class DownloaderGUI:
             bar.pack(pady=2)
             self.progress_bars.append(bar)
 
-            label = Label(self.progress_frame, text="0%", font=("Arial", 12), bg="#f0f4f7")
+            label = Label(self.progress_frame, text="0%", font=FONT_REGULAR, bg=LIGHT_BG)
             label.pack(pady=2)
             self.progress_labels.append(label)
 
